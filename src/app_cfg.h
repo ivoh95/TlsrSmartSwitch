@@ -14,7 +14,7 @@ extern "C" {
 #include "app_types.h"
 
 #define MCU_CORE_8258       1
-#define ZB_ROUTER_ROLE      1
+#define ZB_ED_ROLE          1
 
 /**********************************************************************
  * Version configuration
@@ -43,7 +43,7 @@ extern "C" {
 #define USB_PRINTF_MODE                 OFF
 
 /* PM */
-#define PM_ENABLE                       OFF
+#define PM_ENABLE                       ON
 
 /* PA */
 #define PA_ENABLE                       OFF
@@ -376,13 +376,13 @@ typedef enum{
 #define ZCL_LEVEL_CTRL_SUPPORT          OFF // =0 (!)
 #define ZCL_LIGHT_COLOR_CONTROL_SUPPORT OFF // =0 (!)
 
-//#define ZCL_POLL_CTRL_SUPPORT                      1 ?
-#define ZCL_POWER_CFG_SUPPORT                       OFF
+#define ZCL_POLL_CTRL_SUPPORT                       ON
+#define ZCL_POWER_CFG_SUPPORT                       ON
 #define ZCL_GROUP_SUPPORT                           ON
 #define ZCL_SCENE_SUPPORT                           OFF
 #define ZCL_ON_OFF_SWITCH_CFG_SUPPORT               USE_SWITCH
 #define ZCL_OTA_SUPPORT                             ON
-#define ZCL_GP_SUPPORT                              ON
+#define ZCL_GP_SUPPORT                              OFF
 #define ZCL_METERING_SUPPORT                        USE_METERING
 #define ZCL_ELECTRICAL_MEASUREMENT_SUPPORT          USE_METERING
 #define ZCL_MULTISTATE_INPUT_SUPPORT                USE_SWITCH

@@ -2,7 +2,7 @@
 PROJECT_NAME ?= test
 VERSION_BIN ?=
 
-TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DROUTER=1 -DMCU_STARTUP_8258=1
+TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DEND_DEVICE=1 -DMCU_STARTUP_8258=1
 
 #All libs: -ldrivers_826x -ldrivers_8258 -ldrivers_8278 -lsoft-fp -lfirmware_encrypt -lzb_coordinator -lzb_ed -lzb_router
 
@@ -16,8 +16,8 @@ SRC_PATH ?= $(PROJECT_PATH)$(SRC_DIR)
 TEL_PATH ?= .
 # SDK_PATH: X:/Telink/tl_zigbee_sdk
 
-SDK_z_PATH ?= ./SDK_z
-SDK_bz_PATH ?= ./SDK_bz
+SDK_z_PATH ?= .
+SDK_bz_PATH ?= .
 
 USE_ZB ?=0
 
@@ -50,6 +50,11 @@ else
 	TOOLS_PATH := $(TEL_PATH)/tools/windows
 endif
 TC32_PATH := $(TOOLS_PATH)/tc32/bin/
+
+CC := $(TC32_PATH)tc32-elf-gcc
+AS := $(TC32_PATH)tc32-elf-as
+LD := $(TC32_PATH)tc32-elf-ld
+AR := $(TC32_PATH)tc32-elf-ar
 
 LNK_FLAGS := --gc-sections -nostartfiles
 
@@ -94,7 +99,7 @@ SDK_FLAGS := $(SDK_PATH)/stack/zigbee
 
 LS_FLAGS := $(SRC_PATH)/boot_bz.link
 
-LIBS := -lsoft-fp -lble_8258 -ldrivers_8258 -lzb_router 
+LIBS := -lsoft-fp -lble_8258 -ldrivers_8258 -lzb_ed 
 
 INCLUDE_PATHS := -I$(SRC_PATH) -I$(SRC_PATH)/includes -I$(SRC_PATH)/common  -I$(SRC_PATH)/custom_zcl\
 -I$(SDK_PATH) \
@@ -140,7 +145,7 @@ SDK_FLAGS := $(SDK_PATH)/zigbee
 
 LS_FLAGS := $(SRC_PATH)/boot_z.link
 
-LIBS := -lsoft-fp -ldrivers_8258 -lzb_router
+LIBS := -lsoft-fp -ldrivers_8258 -lzb_ed
 
 INCLUDE_PATHS := -I$(SRC_PATH) -I$(SRC_PATH)/patch_z_sdk  -I$(SRC_PATH)/custom_zcl\
 -I$(SDK_PATH)/platform \

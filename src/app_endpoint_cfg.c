@@ -57,6 +57,9 @@
 const uint16_t app_ep1_inClusterList[] = {
     ZCL_CLUSTER_GEN_BASIC,
     ZCL_CLUSTER_GEN_IDENTIFY,
+#ifdef ZCL_POWER_CFG
+    ZCL_CLUSTER_GEN_POWER_CFG,
+#endif
 #ifdef ZCL_GROUP
     ZCL_CLUSTER_GEN_GROUPS,
 #endif
@@ -137,7 +140,7 @@ zcl_basicAttr_t g_zcl_basicAttrs =
     .manuName       = ZCL_BASIC_MFG_NAME,
     .modelId        = ZCL_BASIC_MODEL_ID,
     .dateCode       = ZCL_BASIC_DATE_CODE,
-    .powerSource    = POWER_SOURCE_MAINS_1_PHASE,
+    .powerSource    = POWER_SOURCE_BATTERY,
     .swBuildId      = ZCL_BASIC_SW_BUILD_ID,
     .deviceEnable   = TRUE,
 };

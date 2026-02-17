@@ -67,7 +67,7 @@ void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd);
 void app_otaProcessMsgHandler(uint8_t evt, uint8_t status);
 bool app_nwkUpdateIndicateHandler(nwkCmd_nwkUpdate_t *pNwkUpdate);
 void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg);
-
+void app_zclCheckInStart(void);
 
 int32_t getTimeCb(void *arg);
 

@@ -326,3 +326,13 @@ void user_init(bool isRetention)
     rf_setTxPower(ZB_TX_POWER_IDX_DEF);
 }
 
+/**
+ * @brief Stub function for Poll Control check-in initialization
+ */
+void app_zclCheckInStart(void)
+{
+	/* Stub implementation for Poll Control cluster check-in interval handling */
+	/* This is called when the check-in interval attribute is updated */
+}
+
+
