@@ -191,6 +191,23 @@ const zclAttrInfo_t identify_attrTbl[] =
 
 #define ZCL_IDENTIFY_ATTR_NUM    sizeof(identify_attrTbl) / sizeof(zclAttrInfo_t)
 
+#ifdef ZCL_POWER_CFG
+/* Power Config Attributes */
+uint8_t g_zcl_batteryPercentage = 200;  // Initialize to 100% (ZigBee 0-200 scale)
+uint8_t g_zcl_batteryVoltage = 26;      // ~2.6V (2600mV / 100 = 26 in 0.1V units)
+uint8_t g_zcl_batteryAlarmMask = 0;
+
+const zclAttrInfo_t powerCfg_attrTbl[] =
+{
+    { ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,    ZCL_UINT8,      R,  (uint8_t*)&g_zcl_batteryPercentage },
+    { ZCL_ATTRID_BATTERY_VOLTAGE,                 ZCL_UINT8,      R,  (uint8_t*)&g_zcl_batteryVoltage },
+
+    { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION,         ZCL_UINT16,     R,  (uint8_t*)&zcl_attr_global_clusterRevision  },
+};
+
+#define ZCL_POWER_CFG_ATTR_NUM    sizeof(powerCfg_attrTbl) / sizeof(zclAttrInfo_t)
+#endif
+
 //zcl_timeAttr_t g_zcl_timeAttrs = {
 //    .time_utc   = 0xffffffff,
 //    .time_local = 0xffffffff,
@@ -597,6 +614,9 @@ const zcl_specClusterInfo_t g_appClusterList1[] =
 {
     {ZCL_CLUSTER_GEN_BASIC,                 MANUFACTURER_CODE_NONE, ZCL_BASIC_ATTR_NUM,         basic_attrTbl,      zcl_basic_register,     app_basicCb     },
     {ZCL_CLUSTER_GEN_IDENTIFY,              MANUFACTURER_CODE_NONE, ZCL_IDENTIFY_ATTR_NUM,      identify_attrTbl,   zcl_identify_register,  app_identifyCb  },
+#ifdef ZCL_POWER_CFG
+    {ZCL_CLUSTER_GEN_POWER_CFG,             MANUFACTURER_CODE_NONE, ZCL_POWER_CFG_ATTR_NUM,     powerCfg_attrTbl,   zcl_powerCfg_register,  NULL            },
+#endif
 #ifdef ZCL_GROUP
     {ZCL_CLUSTER_GEN_GROUPS,                MANUFACTURER_CODE_NONE, ZCL_GROUP1_ATTR_NUM,        group1_attrTbl,      zcl_group_register,     NULL            },
 #endif

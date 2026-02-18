@@ -57,7 +57,9 @@ void battery_detect(bool startup_flg)
 		measured_battery.average_mv = measured_battery.summ / measured_battery.cnt;
 	}
 	if(measured_battery.average_mv > BATTERY_LOW_POWER) {
-		battery_level = ((measured_battery.average_mv - BATTERY_LOW_POWER) * 20000) / ((BATTERY_MAX_POWER - BATTERY_SAFETY_THRESHOLD)*100);
+		// Linear mapping: 2000mV (0%) to 2600mV (100%)
+		// battery_level ranges from 0-200 (0.5% increments for 0-100%)
+		battery_level = ((measured_battery.average_mv - BATTERY_LOW_POWER) * 200) / (BATTERY_MAX_POWER - BATTERY_LOW_POWER);
 		if(battery_level > 200)
 			battery_level = 200;
 	} else
@@ -67,5 +69,11 @@ void battery_detect(bool startup_flg)
     measured_battery.batVal = (u8)(battery_level >> 1);
 #endif
     measured_battery.flag = 0xff;
+    
+    /* Update ZCL Power Config attributes */
+    extern uint8_t g_zcl_batteryPercentage;
+    extern uint8_t g_zcl_batteryVoltage;
+    g_zcl_batteryPercentage = (u8)battery_level;  // 0-200 is the ZigBee spec for battery_percentage_remaining
+    g_zcl_batteryVoltage = (u8)(measured_battery.average_mv / 100);  // mV to 0.1V units (decisvolts)
 #endif
 }
