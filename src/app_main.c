@@ -331,8 +331,8 @@ void user_init(bool isRetention)
  */
 void app_zclCheckInStart(void)
 {
-	/* Stub implementation for Poll Control cluster check-in interval handling */
-	/* This is called when the check-in interval attribute is updated */
+	/* Update battery on Poll Control check-in */
+	battery_detect(0);
 }
 
 
