@@ -173,6 +173,12 @@ void app_task(void) {
 	if (BDB_STATE_GET() == BDB_STATE_IDLE && !button_idle())
 		report_handler();
 #endif
+#if PM_ENABLE
+    /* Must be called from the ev_main() poll loop (non-BLE path) to allow
+     * the Zigbee stack to gate on deep sleep.  In the BLE path main.c calls
+     * this directly; here we own it. */
+    app_pm_task();
+#endif
 }
 
 static void app_sysException(void) {
@@ -327,12 +333,62 @@ void user_init(bool isRetention)
 }
 
 /**
- * @brief Stub function for Poll Control check-in initialization
+ * @brief Called by the ZCL Poll Control layer when it is time to send a
+ *        Check-In command to the coordinator.  Update battery here so the
+ *        fresh reading is available in the subsequent attribute report that
+ *        the coordinator may request during the fast-poll window.
  */
 void app_zclCheckInStart(void)
 {
-	/* Update battery on Poll Control check-in */
-	battery_detect(0);
+    battery_detect(0);
 }
 
+/**
+ * @brief ZCL Poll Control cluster server-side command callback.
+ *
+ *  ZCL_CMD_CHK_IN_RSP  – coordinator tells us whether to open a fast-poll
+ *                         window.  We let the SDK handle the poll-rate change;
+ *                         the app just needs to return SUCCESS.
+ *  ZCL_CMD_FAST_POLL_STOP – coordinator ends the fast-poll window early.
+ *                         Return SUCCESS; SDK resets the poll rate.
+ *  SET_LONG/SHORT_POLL_INTERVAL – write the live attribute and let the SDK
+ *                         apply the new rate.
+ */
+status_t app_pollCtrlCb(zclIncomingAddrInfo_t *pAddrInfo, uint8_t cmdId, void *cmdPayload)
+{
+    (void)pAddrInfo;
 
+    switch (cmdId) {
+        case ZCL_CMD_CHK_IN_RSP: {
+            /* cmdPayload is zcl_chkInRsp_t* – the SDK has already acted on
+             * startFastPolling / fastPollTimeout; nothing extra needed. */
+            break;
+        }
+        case ZCL_CMD_FAST_POLL_STOP:
+            /* SDK handles the poll-rate restoration automatically. */
+            break;
+        case ZCL_CMD_SET_LONG_POLL_INTERVAL: {
+            zcl_setLongPollInterval_t *p = (zcl_setLongPollInterval_t *)cmdPayload;
+            if (p) {
+                extern uint32_t g_pollCtrl_longPollInterval;
+                extern uint32_t g_pollCtrl_longPollIntervalMin;
+                if (p->newLongPollInterval >= g_pollCtrl_longPollIntervalMin)
+                    g_pollCtrl_longPollInterval = p->newLongPollInterval;
+                else
+                    return ZCL_STA_INVALID_VALUE;
+            }
+            break;
+        }
+        case ZCL_CMD_SET_SHORT_POLL_INTERVAL: {
+            zcl_setShortPollInterval_t *p = (zcl_setShortPollInterval_t *)cmdPayload;
+            if (p) {
+                extern uint16_t g_pollCtrl_shortPollInterval;
+                g_pollCtrl_shortPollInterval = p->newShortPollInterval;
+            }
+            break;
+        }
+        default:
+            return ZCL_STA_UNSUP_CLUSTER_COMMAND;
+    }
+    return ZCL_STA_SUCCESS;
+}

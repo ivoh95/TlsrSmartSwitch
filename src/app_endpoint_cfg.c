@@ -208,6 +208,34 @@ const zclAttrInfo_t powerCfg_attrTbl[] =
 #define ZCL_POWER_CFG_ATTR_NUM    sizeof(powerCfg_attrTbl) / sizeof(zclAttrInfo_t)
 #endif
 
+#ifdef ZCL_POLL_CTRL
+/* Poll Control Attributes - plain variables, intervals in quarter-seconds (QS).
+ * Check-in interval: how often the device wakes to send a Check-In command.
+ * Long-poll interval: normal poll rate between check-ins.
+ */
+uint32_t g_pollCtrl_checkInInterval     = 4 * 60 * 4;  // 4 min  (960 QS)
+uint32_t g_pollCtrl_longPollInterval    = 20 * 4;       // 20 sec (80 QS)
+uint16_t g_pollCtrl_shortPollInterval   = 2;            // 500 ms (2 QS)
+uint16_t g_pollCtrl_fastPollTimeout     = 40;           // 10 sec (40 QS)
+uint32_t g_pollCtrl_checkInIntervalMin  = 0;            // no minimum enforced
+uint32_t g_pollCtrl_longPollIntervalMin = 4;            // 1 sec minimum
+uint16_t g_pollCtrl_fastPollTimeoutMax  = 0;            // no maximum enforced
+
+const zclAttrInfo_t pollCtrl_attrTbl[] = {
+    { ZCL_ATTRID_CHK_IN_INTERVAL,        ZCL_UINT32, RW, (uint8_t*)&g_pollCtrl_checkInInterval     },
+    { ZCL_ATTRID_LONG_POLL_INTERVAL,     ZCL_UINT32, R,  (uint8_t*)&g_pollCtrl_longPollInterval    },
+    { ZCL_ATTRID_SHORT_POLL_INTERVAL,    ZCL_UINT16, R,  (uint8_t*)&g_pollCtrl_shortPollInterval   },
+    { ZCL_ATTRID_FAST_POLL_TIMEOUT,      ZCL_UINT16, RW, (uint8_t*)&g_pollCtrl_fastPollTimeout     },
+    { ZCL_ATTRID_CHK_IN_INTERVAL_MIN,    ZCL_UINT32, R,  (uint8_t*)&g_pollCtrl_checkInIntervalMin  },
+    { ZCL_ATTRID_LONG_POLL_INTERVAL_MIN, ZCL_UINT32, R,  (uint8_t*)&g_pollCtrl_longPollIntervalMin },
+    { ZCL_ATTRID_FAST_POLL_TIMEOUT_MAX,  ZCL_UINT16, R,  (uint8_t*)&g_pollCtrl_fastPollTimeoutMax  },
+
+    { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_UINT16, R, (uint8_t*)&zcl_attr_global_clusterRevision },
+};
+
+#define ZCL_POLL_CTRL_ATTR_NUM  sizeof(pollCtrl_attrTbl) / sizeof(zclAttrInfo_t)
+#endif /* ZCL_POLL_CTRL */
+
 //zcl_timeAttr_t g_zcl_timeAttrs = {
 //    .time_utc   = 0xffffffff,
 //    .time_local = 0xffffffff,
@@ -616,6 +644,9 @@ const zcl_specClusterInfo_t g_appClusterList1[] =
     {ZCL_CLUSTER_GEN_IDENTIFY,              MANUFACTURER_CODE_NONE, ZCL_IDENTIFY_ATTR_NUM,      identify_attrTbl,   zcl_identify_register,  app_identifyCb  },
 #ifdef ZCL_POWER_CFG
     {ZCL_CLUSTER_GEN_POWER_CFG,             MANUFACTURER_CODE_NONE, ZCL_POWER_CFG_ATTR_NUM,     powerCfg_attrTbl,   zcl_powerCfg_register,  NULL            },
+#endif
+#ifdef ZCL_POLL_CTRL
+    {ZCL_CLUSTER_GEN_POLL_CONTROL,          MANUFACTURER_CODE_NONE, ZCL_POLL_CTRL_ATTR_NUM,     pollCtrl_attrTbl,   zcl_pollCtrl_register,  app_pollCtrlCb  },
 #endif
 #ifdef ZCL_GROUP
     {ZCL_CLUSTER_GEN_GROUPS,                MANUFACTURER_CODE_NONE, ZCL_GROUP1_ATTR_NUM,        group1_attrTbl,      zcl_group_register,     NULL            },
