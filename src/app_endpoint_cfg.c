@@ -214,7 +214,10 @@ const zclAttrInfo_t powerCfg_attrTbl[] =
  * Long-poll interval: normal poll rate between check-ins.
  */
 uint32_t g_pollCtrl_checkInInterval     = 4 * 60 * 4;  // 4 min  (960 QS)
-uint32_t g_pollCtrl_longPollInterval    = 20 * 4;       // 20 sec (80 QS)
+uint32_t g_pollCtrl_longPollInterval    = 4 * 4;        // 4 sec (16 QS) - must stay well under the
+                                                         // coordinator's indirect-frame buffering
+                                                         // window (~7.68s on many stacks), or queued
+                                                         // commands get dropped before we poll for them
 uint16_t g_pollCtrl_shortPollInterval   = 2;            // 500 ms (2 QS)
 uint16_t g_pollCtrl_fastPollTimeout     = 40;           // 10 sec (40 QS)
 uint32_t g_pollCtrl_checkInIntervalMin  = 0;            // no minimum enforced

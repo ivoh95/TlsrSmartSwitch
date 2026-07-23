@@ -61,7 +61,9 @@ status_t app_timeCb(zclIncomingAddrInfo_t *pAddrInfo, uint8_t cmdId, void *cmdPa
 status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
 status_t app_msInputCb(zclIncomingAddrInfo_t *pAddrInfo, uint8_t cmdId, void *cmdPayload);
 status_t app_meteringCb(zclIncomingAddrInfo_t *pAddrInfo, uint8_t cmdId, void *cmdPayload);
+#ifdef ZCL_POLL_CTRL
 status_t app_pollCtrlCb(zclIncomingAddrInfo_t *pAddrInfo, uint8_t cmdId, void *cmdPayload);
+#endif
 
 void app_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf);
 void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd);
@@ -69,6 +71,9 @@ void app_otaProcessMsgHandler(uint8_t evt, uint8_t status);
 bool app_nwkUpdateIndicateHandler(nwkCmd_nwkUpdate_t *pNwkUpdate);
 void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg);
 void app_zclCheckInStart(void);
+#if PM_ENABLE
+void app_pmSleepSettleStart(void);
+#endif
 
 int32_t getTimeCb(void *arg);
 

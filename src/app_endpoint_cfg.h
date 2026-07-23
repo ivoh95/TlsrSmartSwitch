@@ -305,6 +305,17 @@ extern zcl_msInputAttr_t            g_zcl_msInputAttrs;
 extern zcl_seAttr_t                 g_zcl_seAttrs;
 extern zcl_msAttr_t                 g_zcl_msAttrs;
 
+#ifdef ZCL_POLL_CTRL
+/* Poll Control attributes, intervals in quarter-seconds (QS) */
+extern uint32_t g_pollCtrl_checkInInterval;
+extern uint32_t g_pollCtrl_longPollInterval;
+extern uint16_t g_pollCtrl_shortPollInterval;
+extern uint16_t g_pollCtrl_fastPollTimeout;
+extern uint32_t g_pollCtrl_checkInIntervalMin;
+extern uint32_t g_pollCtrl_longPollIntervalMin;
+extern uint16_t g_pollCtrl_fastPollTimeoutMax;
+#endif
+
 #define zcl_onOffAttrsGet()         &g_zcl_onOffAttrs;
 #define zcl_onOffCfgAttrsGet()      &g_zcl_onOffCfgAttrs;
 #define zcl_msInputAttrsGet()       &g_zcl_msInputAttrs;

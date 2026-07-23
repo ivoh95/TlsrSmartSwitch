@@ -132,6 +132,10 @@ void zb_bdbInitCb(uint8_t status, uint8_t joinedNetwork)
 #ifdef ZCL_OTA
             ota_queryStart(OTA_PERIODIC_QUERY_INTERVAL);
 #endif
+            app_zclCheckInStart();
+#if PM_ENABLE
+            app_pmSleepSettleStart();
+#endif
         } else {
             heartInterval = 500;
 
@@ -188,6 +192,10 @@ void zb_bdbCommissioningCb(uint8_t status, void *arg)
 
 #ifdef ZCL_OTA
         ota_queryStart(OTA_PERIODIC_QUERY_INTERVAL);
+#endif
+        app_zclCheckInStart();
+#if PM_ENABLE
+        app_pmSleepSettleStart();
 #endif
 
 #if FIND_AND_BIND_SUPPORT
