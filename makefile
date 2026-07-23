@@ -2,7 +2,18 @@
 PROJECT_NAME ?= test
 VERSION_BIN ?=
 
+# router (default): mains-powered boards, always listening, helps the mesh.
+# ed: battery-powered boards (e.g. DIY_TB03F) that sleep between polls.
+# Must match the ZB_ROUTER_ROLE/ZB_ED_ROLE selection driven by USE_BATTERY_PM
+# in src/app_cfg.h for the same board.
+ZB_DEVICE_ROLE ?= router
+ifeq ($(ZB_DEVICE_ROLE),ed)
 TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DEND_DEVICE=1 -DMCU_STARTUP_8258=1
+ZB_ROLE_LIB := -lzb_ed
+else
+TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DROUTER=1 -DMCU_STARTUP_8258=1
+ZB_ROLE_LIB := -lzb_router
+endif
 
 #All libs: -ldrivers_826x -ldrivers_8258 -ldrivers_8278 -lsoft-fp -lfirmware_encrypt -lzb_coordinator -lzb_ed -lzb_router
 
@@ -99,7 +110,7 @@ SDK_FLAGS := $(SDK_PATH)/stack/zigbee
 
 LS_FLAGS := $(SRC_PATH)/boot_bz.link
 
-LIBS := -lsoft-fp -lble_8258 -ldrivers_8258 -lzb_ed 
+LIBS := -lsoft-fp -lble_8258 -ldrivers_8258 $(ZB_ROLE_LIB)
 
 INCLUDE_PATHS := -I$(SRC_PATH) -I$(SRC_PATH)/includes -I$(SRC_PATH)/common  -I$(SRC_PATH)/custom_zcl\
 -I$(SDK_PATH) \
@@ -145,7 +156,7 @@ SDK_FLAGS := $(SDK_PATH)/zigbee
 
 LS_FLAGS := $(SRC_PATH)/boot_z.link
 
-LIBS := -lsoft-fp -ldrivers_8258 -lzb_ed
+LIBS := -lsoft-fp -ldrivers_8258 $(ZB_ROLE_LIB)
 
 INCLUDE_PATHS := -I$(SRC_PATH) -I$(SRC_PATH)/patch_z_sdk  -I$(SRC_PATH)/custom_zcl\
 -I$(SDK_PATH)/platform \

@@ -63,6 +63,8 @@
 #define BOARD_EM8SW1TS		22 // BL0937, MY18B20, TERMOSTAT
 #define BOARD_EM8SW2TS		23 // BL0937, ext.switch, MY18B20, TERMOSTAT
 
+#define BOARD_DIY_TB03F		32 // bare TB03F, battery-powered: PM sleep, ZED role, Poll Control, Power Config
+
 
 
 /* Board define */
@@ -99,6 +101,11 @@
 #define USE_THERMOSTAT		1
 #else
 #define USE_THERMOSTAT		0
+#endif
+#if (BOARD & 32)
+#define USE_BATTERY_PM		1
+#else
+#define USE_BATTERY_PM		0
 #endif
 
 /* Chip IDs */
