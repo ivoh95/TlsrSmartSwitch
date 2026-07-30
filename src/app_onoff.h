@@ -10,6 +10,7 @@ inline void cmdOnOff_off(void){
 	cmdOnOff_set(ZCL_ONOFF_STATUS_OFF);
 }
 void cmdOnOff_toggle(void);
+void cmdOnOff_onWithTimedOff(zcl_onoff_onWithTimeOffCmd_t *pCmd);
 
 void remoteCmdOnOff(uint8_t cmd);
 

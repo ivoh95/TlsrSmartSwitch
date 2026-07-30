@@ -786,6 +786,9 @@ status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
                 pOnOff->globalSceneControl = TRUE;
 //    			}
     			break;
+    		case ZCL_CMD_ON_WITH_TIMED_OFF:
+    			cmdOnOff_onWithTimedOff(&((zcl_onoff_cmdPayload_t *)cmdPayload)->onWithTimeOff);
+    			break;
             default:
             	break;
             }

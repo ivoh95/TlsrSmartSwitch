@@ -177,7 +177,14 @@ void dev_gpios_init(void) {
 #endif
 	if(!dev_gpios.rl)
 		dev_gpios.rl = GPIO_RELAY1;
-    gpio_output_init(dev_gpios.rl, RELAY_OFF);
+    /* On a cold boot cfg_on_off.onOff is still its zero-initialized default
+     * (off) here - load_config_on_off() hasn't run yet, and the normal
+     * startup-on-off restore happens later via the ZCL layer. On a
+     * retention wake, though, user_app_init() (and everything in it) is
+     * skipped entirely, so this is the only place that reapplies the
+     * current state to the pin - without it, every wake cycle would reset
+     * the output regardless of what it's actually supposed to be. */
+    gpio_output_init(dev_gpios.rl, cfg_on_off.onOff ? RELAY_ON : RELAY_OFF);
 	if(!dev_gpios.led1)
 		dev_gpios.led1 = GPIO_LED1;
     gpio_output_init(dev_gpios.led1,

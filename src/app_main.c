@@ -226,8 +226,16 @@ void app_task(void) {
      * check-in timer or the MAC poll timer), so it wakes up exactly when
      * needed. Also require an established network - don't sleep during the
      * initial steering/join jitter window, before any parent relationship
-     * exists yet. */
-    if (isIdle && zb_isDeviceJoinedNwk() && g_pmSleepAllowed)
+     * exists yet.
+     *
+     * Also skip sleep entirely while the output is on: deep-sleep-with-
+     * retention on this chip does not keep the relay GPIO actively driven
+     * through the sleep portion of each cycle (only during the brief wake
+     * window), so a steady "on" output would otherwise blink instead of
+     * staying lit. There's no real power cost to staying awake here - the
+     * load's own current while active already dwarfs anything saved by
+     * sleeping the MCU during that window. */
+    if (isIdle && zb_isDeviceJoinedNwk() && g_pmSleepAllowed && !cfg_on_off.onOff)
         drv_pm_lowPowerEnter();
 #endif
 }
