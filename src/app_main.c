@@ -146,6 +146,13 @@ void user_app_init(void)
     app_sensor_init();
 #endif
     dev_relay_init();
+#if USE_IONIZER
+    /* After load_config_on_off(), so the tick sees the stored interval and
+     * duration. Lives in user_app_init() (cold boot only) rather than
+     * user_init(): on a retention wake the ev_timer pool is retained, so the
+     * tick is still scheduled and re-arming it would double up. */
+    ionizer_schedule_start();
+#endif
 
 
 	/* Register ZCL specific cluster information */
@@ -200,10 +207,15 @@ void app_pmSleepSettleStart(void)
 #endif
 
 void app_task(void) {
+#if !USE_IONIZER
 	if(dev_gpios.led2) {
 		gpio_write(dev_gpios.led2,
 				(dev_gpios.flg & GPIOS_FLG_LED2_POL)? cfg_on_off.onOff : !cfg_on_off.onOff);
 	}
+#endif
+	/* On the ionizer led2 is the red fault/low-battery LED and must not
+	 * mirror the output state - the blue trio already shows that. It's
+	 * driven by red_set() from the fault paths instead. */
     button_handler();
 #if USE_BL0942
     monitoring_handler();
@@ -235,7 +247,14 @@ void app_task(void) {
      * staying lit. There's no real power cost to staying awake here - the
      * load's own current while active already dwarfs anything saved by
      * sleeping the MCU during that window. */
-    if (isIdle && zb_isDeviceJoinedNwk() && g_pmSleepAllowed && !cfg_on_off.onOff)
+    if (isIdle && zb_isDeviceJoinedNwk() && g_pmSleepAllowed && !cfg_on_off.onOff
+#if USE_IONIZER
+        /* Don't sleep through an indicator. Deep sleep drops the output
+         * drive, so sleeping here truncates the battery gauge to about a
+         * millisecond. All the cases are short and self-limiting. */
+        && !led_display_busy()
+#endif
+        )
         drv_pm_lowPowerEnter();
 #endif
 }

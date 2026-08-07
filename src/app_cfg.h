@@ -157,7 +157,12 @@ extern "C" {
 #define _MODEL_SW	'1'
 #endif
 
-#if USE_SENSOR_MY18B20
+#if USE_IONIZER
+/* Distinct model id: the EMxSWx name is assembled from the metering/switch
+ * feature bits, all of which are 0 here, so the ionizer would otherwise
+ * announce itself as "EM0SW1_z" and be mis-identified by Z2M. */
+#define ZCL_BASIC_MODEL_ID     {8,'D','I','Y','I','O','N','_','z'}
+#elif USE_SENSOR_MY18B20
  #if USE_THERMOSTAT
 	#define ZCL_BASIC_MODEL_ID     {10,'E','M',_MODEL_EM,'S','W',_MODEL_SW,'T','S','_','z'}
  #else
@@ -169,7 +174,56 @@ extern "C" {
 
 /*** Configure GPIOS for my device ***/
 
-#ifdef MY_DEVICE
+#if USE_IONIZER
+
+/*** Zigbee Ionizer (BOARD_DIY_ION) ***/
+
+#define BUTTON_ON		0
+#define GPIO_BUTTON     GPIO_PB1
+
+/* All LEDs active high - the GPIO sources, cathode to GND. Chosen so an
+ * undriven pin (deep sleep, or before dev_gpios_init() runs) leaves the LED
+ * genuinely off; with the anode tied to the rail instead, a floating pin can
+ * leak enough to glow. Series R: 330R blue (2.5V Vf), 560R red/green. */
+#define LED_ON          1
+#define GPIO_LED1       GPIO_PD4    // green - status/network, drives led_on()/led_off()
+#define GPIO_LED2       GPIO_PD3    // red   - fault / low battery
+#define GPIO_LED_BLUE1  GPIO_PB4    // 3 blue in a line - run progress chaser
+#define GPIO_LED_BLUE2  GPIO_PB5
+#define GPIO_LED_BLUE3  GPIO_PC2
+
+/* Ionizer HV module enable. Relies on an external 100k pulldown to hold the
+ * module off whenever this pin is not actively driven: through deep sleep
+ * (output drive is not retained), before dev_gpios_init() runs, and when the
+ * MCU is unpowered entirely. The internal pulldown below only covers the
+ * first of those three. */
+#define RELAY_ON        1
+#define GPIO_RELAY1     GPIO_PD2
+
+/* No external switch or 1-wire sensor on this board. The fields still exist
+ * in dev_gpios_t, so point them at nothing - dev_gpios_init() skips zeros. */
+#define GPIO_SWITCH_ON  0
+#define GPIO_SWITCH1    0
+#define GPIO_ONEWIRE1   0
+
+/* The button is the deep-sleep wake source at PM_WAKEUP_LEVEL_LOW, so it MUST
+ * be held high through sleep. Without this the SDK default applies
+ * (PULL_WAKEUP_SRC_PB1 = 0 = PM_PIN_UP_DOWN_FLOAT, gpio_default.h), leaving a
+ * floating pin wired to wake the device whenever it drifts low - and the
+ * runtime gpio_input_init() pull in dev_gpios_init() does not cover sleep,
+ * which is exactly what PULL_WAKEUP_SRC_* governs. */
+#define PULL_WAKEUP_SRC_PB1 PM_PIN_PULLUP_10K
+
+/* Hold every output low through deep sleep. PULL_WAKEUP_SRC_* is the variant
+ * that survives sleep; a pulldown on an already-low pin costs nothing. */
+#define PULL_WAKEUP_SRC_PD2 PM_PIN_PULLDOWN_100K
+#define PULL_WAKEUP_SRC_PD3 PM_PIN_PULLDOWN_100K
+#define PULL_WAKEUP_SRC_PD4 PM_PIN_PULLDOWN_100K
+#define PULL_WAKEUP_SRC_PB4 PM_PIN_PULLDOWN_100K
+#define PULL_WAKEUP_SRC_PB5 PM_PIN_PULLDOWN_100K
+#define PULL_WAKEUP_SRC_PC2 PM_PIN_PULLDOWN_100K
+
+#elif defined(MY_DEVICE)
 
 /*** Configure GPIOS for my device BL0937 ***/
 #if USE_BL0937
@@ -336,6 +390,35 @@ enum {
 
 /*** Configure  GPIO Vbat ***/
 
+#if USE_IONIZER
+
+/* Li-Ion 18650 measured through an external 1:2 divider (2x 910k, 100nF at
+ * the pin), NOT the drive-high VDD trick the other boards use - here the
+ * cell sits above the rail and VDD tells us nothing about its state of
+ * charge. get_adc_mv() already returns pin millivolts (internal 1.2V
+ * bandgap ref, 1/8 pre-scaler), so the only correction needed is the
+ * divider ratio, applied via VBAT_DIVIDER_MUL in battery.c.
+ *
+ * The pin must be a passive analog input:
+ *  - OUTPUT_ENABLE 0, or the pin driver fights the divider
+ *  - INPUT_ENABLE 0, because the tap sits ~2V (mid-rail); leaving the
+ *    digital buffer enabled there makes both halves of the input inverter
+ *    conduct, which would swamp the ~2uA the divider itself draws
+ *  - no pull, since even a 10k would completely overwhelm a 910k leg */
+/* B6P: ADC_InputPchTypeDef runs NOINPUTP=0, B0P=1 .. B6P=7 (adc.h).
+ * Note the same enum has a dedicated internal VBAT channel (=15) that reads
+ * the rail directly - that's the way to get a true 2.0V flash-write
+ * interlock back if it's ever wanted, without spending another pin. */
+#define SHL_ADC_VBAT        7
+#define GPIO_VBAT           GPIO_PB6
+#define PB6_INPUT_ENABLE    0
+#define PB6_DATA_OUT        0
+#define PB6_OUTPUT_ENABLE   0
+#define PB6_FUNC            AS_GPIO
+#define PULL_WAKEUP_SRC_PB6 PM_PIN_UP_DOWN_FLOAT
+
+#else
+
 #define SHL_ADC_VBAT        1  // "B0P" in adc.h
 #define GPIO_VBAT           GPIO_PB0 // missing pin on case TLSR8251F512ET24
 #define PB0_INPUT_ENABLE    1
@@ -343,6 +426,8 @@ enum {
 #define PB0_OUTPUT_ENABLE   1
 #define PB0_FUNC            AS_GPIO
 #define PULL_WAKEUP_SRC_PB0 PM_PIN_PULLUP_10K
+
+#endif // USE_IONIZER
 
 /* Voltage detect module */
 #define VOLTAGE_DETECT_ENABLE       0 // always = 0!

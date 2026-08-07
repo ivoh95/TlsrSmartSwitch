@@ -66,6 +66,8 @@ Optimizations have been made:
 
 [Описание дополнительных (нестандартных) атрибутов для максимального варианта прошивки](https://github.com/pvvx/TlsrSmartSwitch/blob/master/README_ExtAttr.md).
 
+[DIY_ION — Zigbee Ionizer (battery-powered, GPIO and custom attributes)](README_ION.md).
+
 ## *Обработка пороговых значений*
 
 Для отключения реле поддерживаются установка таких порогов и условий:

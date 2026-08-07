@@ -21,6 +21,9 @@ const ext_tab_gpios_t  tab_gpios = {
 		.key = GPIO_BUTTON,
 		.sw1 = GPIO_SWITCH1,
 		.swire = GPIO_ONEWIRE1,
+#if USE_IONIZER
+		.blue = { GPIO_LED_BLUE1, GPIO_LED_BLUE2, GPIO_LED_BLUE3 },
+#endif
 #if USE_BL0937
 		.sel = GPIO_SEL,
 		.cf = GPIO_CF,
@@ -74,10 +77,24 @@ void set_relay_status(bool status) {
 	if(relay_off || tik_reload != 0xffff || tik_start != 0xffff)
 		status = false;
 #endif
+#if USE_IONIZER
+	/* Green is a cycle-start marker, not a run indicator. Holding it lit for
+	 * a whole run costs ~220mAh/year - about 9% of the cell and the largest
+	 * single LED cost here - and it would be redundant: the blue line already
+	 * shows the run is active for its full duration. One short flash. */
+	if(status) {
+		light_blink_start(1, 100, 100);
+		blue_chaser_start();
+	} else {
+		blue_chaser_stop();
+		light_off();
+	}
+#else
 	if(status)
 		light_on();
 	else
 		light_off();
+#endif
 #if RELAY_ON
 	gpio_write(dev_gpios.rl, status);
 #else
@@ -192,6 +209,17 @@ void dev_gpios_init(void) {
     if(dev_gpios.led2)
     	gpio_output_init(dev_gpios.led2,
     			(dev_gpios.flg & GPIOS_FLG_LED2_POL)? LED_ON : LED_OFF);
+#if USE_IONIZER
+    /* Blue trio starts dark. Like the relay above, this also runs on every
+     * retention wake - deep sleep doesn't hold the output drive, so the
+     * chaser re-establishes its own state when a run resumes. */
+    for(uint32_t i = 0; i < 3; i++) {
+    	if(!dev_gpios.blue[i])
+    		dev_gpios.blue[i] = tab_gpios.gpios.blue[i];
+    	gpio_output_init(dev_gpios.blue[i],
+    			(dev_gpios.flg & (GPIOS_FLG_BLUE1_POL << i))? LED_ON : LED_OFF);
+    }
+#endif
 #if USE_SWITCH
 	if(!dev_gpios.sw1)
 		dev_gpios.sw1 = GPIO_SWITCH1;

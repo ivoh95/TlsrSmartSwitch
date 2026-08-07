@@ -451,9 +451,15 @@ void app_zclIdentifyCmdHandler(uint8_t endpoint, uint16_t srcAddr, uint16_t iden
 
     if(identifyTime == 0){
         app_zclIdentifyTimerStop();
+#if USE_IONIZER
+        led_identify_mode(0);
+#endif
         light_blink_stop();
     }else{
         if(!identifyTimerEvt){
+#if USE_IONIZER
+            led_identify_mode(1);
+#endif
             light_blink_start(identifyTime, 500, 500);
             identifyTimerEvt = TL_ZB_TIMER_SCHEDULE(app_zclIdentifyTimerCb, NULL, 1000);
         }

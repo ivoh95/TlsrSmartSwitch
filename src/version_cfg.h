@@ -65,6 +65,13 @@
 
 #define BOARD_DIY_TB03F		32 // bare TB03F, battery-powered: PM sleep, ZED role, Poll Control, Power Config
 
+/* Zigbee ionizer: battery-powered (Li-Ion 18650 + external divider), HV
+ * module on the relay output, 5 LEDs (red, green, 3 blue in a line).
+ * Needs bit5 for USE_BATTERY_PM and bit6 to distinguish it from a plain
+ * DIY_TB03F - every feature bit below bit5 is 0 for both boards, so
+ * without bit6 the two builds would be identical. */
+#define BOARD_DIY_ION		96 // (64|32)
+
 
 
 /* Board define */
@@ -107,6 +114,11 @@
 #else
 #define USE_BATTERY_PM		0
 #endif
+#if (BOARD & 64)
+#define USE_IONIZER			1
+#else
+#define USE_IONIZER			0
+#endif
 
 /* Chip IDs */
 #define TLSR_8267				0x00
@@ -131,7 +143,7 @@
 #endif
 
 #define APP_RELEASE				0x00	//0x12 -> BCD app release "1.2"
-#define APP_BUILD				0x11	//0x34 -> BCD app build "3.4"
+#define APP_BUILD				0x15	//0x34 -> BCD app build "3.4"
 
 #define STACK_RELEASE			0x30	//BCD stack release 3.0
 #define STACK_BUILD				0x01	//BCD stack build 01

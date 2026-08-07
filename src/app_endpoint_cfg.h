@@ -33,6 +33,38 @@
 #define ZCL_TEMPERATURE_MIN					0xF011 // emergency
 #define ZCL_TEMPERATURE_MAX					0xF012 // emergency
 
+/* Custom Attr for Power Configuration cluster.
+ * The standard ZCL_ATTRID_BATTERY_VOLTAGE is a u8 in 0.1V steps, too coarse
+ * to check a divider against a meter. These are full-resolution millivolts:
+ *  _RAW_MV  - what the ADC actually measured at the pin, before any scaling
+ *  _CELL_MV - that value x VBAT_DIVIDER_MUL, i.e. the real cell voltage
+ * On boards without a divider the two are equal (MUL = 1). */
+#define ZCL_ATTRID_BATTERY_RAW_MV			0xF020
+#define ZCL_ATTRID_BATTERY_CELL_MV			0xF021
+
+#if USE_IONIZER
+/* Ionizer run scheduler, on the On/Off cluster. Deliberately below 0xF100:
+ * the write handler in zcl_appCb.c routes >= ZCL_ATTRID_GPIO_RELAY to the
+ * GPIO-config save path, and anything >= ZCL_ATTRID_START_UP_ONOFF below
+ * that to save_config_on_off() - which is where these belong. */
+#define ZCL_ATTRID_RUN_INTERVAL				0xF030	// u32, seconds, 0 = manual only
+#define ZCL_ATTRID_RUN_DURATION				0xF031	// u16, seconds
+#define ZCL_ATTRID_RUN_COUNT				0xF032	// u32, read only
+#define ZCL_ATTRID_RUN_ELAPSED				0xF033	// u32, seconds since last run start
+
+/* Schedule resolution. The device has to wake at roughly this cadence to
+ * poll its parent anyway, so counting ticks costs almost nothing extra -
+ * whereas a single multi-hour timer would leave the end device silent long
+ * enough to risk being aged out by its parent. */
+#define ION_TICK_MS							60000
+
+extern uint32_t ionizer_run_count;
+extern uint32_t ionizer_elapsed_s;
+void ionizer_schedule_start(void);
+void ionizer_schedule_stop(void);
+void ionizer_run_start(void);	// one bounded run, also used for manual cycles
+#endif
+
 #if USE_CFG_GPIO
 #define ZCL_ATTRID_GPIO_RELAY				0xF100
 #define ZCL_ATTRID_GPIO_LED1				0xF101
@@ -52,6 +84,13 @@
 #define ZCL_ATTRID_GPIO_TX					0xF10A
 #endif
 #define ZCL_ATTRID_GPIO_FLG					0xF10B
+#if USE_IONIZER
+/* Blue trio, left to right. All >= ZCL_ATTRID_GPIO_RELAY, so the write
+ * handler in zcl_appCb.c already routes them to save_config_gpio(). */
+#define ZCL_ATTRID_GPIO_BLUE1				0xF10C
+#define ZCL_ATTRID_GPIO_BLUE2				0xF10D
+#define ZCL_ATTRID_GPIO_BLUE3				0xF10E
+#endif
 #endif
 
 /* Custom Attr for Electrical Measurement cluster */
@@ -194,6 +233,10 @@ typedef struct {
 #if USE_SWITCH
     uint8_t  switchActions;	// 0 - ON_OFF, 1 - OFF_ON, 2 - TOGGLE
     uint8_t  switchDecoupled;
+#endif
+#if USE_IONIZER
+    uint32_t run_interval_s;	// seconds between scheduled runs, 0 = manual only
+    uint16_t run_duration_s;	// seconds per run
 #endif
 } config_on_off_t; // save
 

@@ -1,4 +1,7 @@
 #include "app_main.h"
+#if USE_IONIZER
+#include "battery.h"
+#endif
 
 static int32_t net_steer_start_offCb(void *args) {
 
@@ -32,15 +35,45 @@ static void buttonSinglePressed(u8 btNum) {
 
     switch (btNum) {
         case VK_SW1:
+#if USE_IONIZER
+            /* Battery gauge, not a toggle. The output is scheduled here, so
+             * a stray single press must not be able to start an unbounded
+             * run or cut a running cycle short - manual control is moved to
+             * the deliberate double-click below. Silently does nothing while
+             * a cycle is running, since the chaser owns the blue line. */
+            blue_gauge_show(measured_battery.level);
+#else
         	if (!cfg_on_off.key_lock)
         		cmdOnOff_toggle();
+#endif
             break;
         default:
             break;
     }
 }
 
+#if USE_IONIZER
+static void buttonDoublePressed(u8 btNum) {
 
+    switch (btNum) {
+        case VK_SW1:
+            if (cfg_on_off.key_lock)
+                break;
+            if (get_relay_status()) {
+                /* Abort a cycle in progress. A plain off also cancels the
+                 * pending timed-off session (see cmdOnOff_set), so this
+                 * cannot leave an orphaned timer that switches the HV module
+                 * back off later during an unrelated run. */
+                cmdOnOff_off();
+            } else {
+                ionizer_run_start();
+            }
+            break;
+        default:
+            break;
+    }
+}
+#endif
 
 static void buttonCheckCommand(uint8_t btNum) {
     g_appCtx.button[btNum-1].state = APP_STATE_NORMAL;
@@ -48,6 +81,11 @@ static void buttonCheckCommand(uint8_t btNum) {
     if (g_appCtx.button[btNum-1].ctn == 1) {
         buttonSinglePressed(btNum);
     }
+#if USE_IONIZER
+    else if (g_appCtx.button[btNum-1].ctn == 2) {
+        buttonDoublePressed(btNum);
+    }
+#endif
 
     g_appCtx.button[btNum-1].ctn = 0;
 }

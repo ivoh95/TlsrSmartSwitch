@@ -196,11 +196,17 @@ const zclAttrInfo_t identify_attrTbl[] =
 uint8_t g_zcl_batteryPercentage = 200;  // Initialize to 100% (ZigBee 0-200 scale)
 uint8_t g_zcl_batteryVoltage = 26;      // ~2.6V (2600mV / 100 = 26 in 0.1V units)
 uint8_t g_zcl_batteryAlarmMask = 0;
+uint16_t g_zcl_batteryRawMv = 0;        // ADC pin millivolts, pre-scaling
+uint16_t g_zcl_batteryCellMv = 0;       // raw x VBAT_DIVIDER_MUL
 
 const zclAttrInfo_t powerCfg_attrTbl[] =
 {
     { ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,    ZCL_UINT8,      R,  (uint8_t*)&g_zcl_batteryPercentage },
     { ZCL_ATTRID_BATTERY_VOLTAGE,                 ZCL_UINT8,      R,  (uint8_t*)&g_zcl_batteryVoltage },
+
+    // Custom Attr:
+    { ZCL_ATTRID_BATTERY_RAW_MV,                  ZCL_UINT16,     R,  (uint8_t*)&g_zcl_batteryRawMv },
+    { ZCL_ATTRID_BATTERY_CELL_MV,                 ZCL_UINT16,     R,  (uint8_t*)&g_zcl_batteryCellMv },
 
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION,         ZCL_UINT16,     R,  (uint8_t*)&zcl_attr_global_clusterRevision  },
 };
@@ -214,10 +220,14 @@ const zclAttrInfo_t powerCfg_attrTbl[] =
  * Long-poll interval: normal poll rate between check-ins.
  */
 uint32_t g_pollCtrl_checkInInterval     = 4 * 60 * 4;  // 4 min  (960 QS)
-uint32_t g_pollCtrl_longPollInterval    = 4 * 4;        // 4 sec (16 QS) - must stay well under the
+uint32_t g_pollCtrl_longPollInterval    = 6 * 4;        // 6 sec (24 QS) - must stay well under the
                                                          // coordinator's indirect-frame buffering
                                                          // window (~7.68s on many stacks), or queued
-                                                         // commands get dropped before we poll for them
+                                                         // commands get dropped before we poll for them.
+                                                         // 6s leaves ~1.7s of margin; 7s would leave
+                                                         // only ~0.7s, which RC-clock drift and
+                                                         // coordinator-side timing jitter can eat into.
+                                                         // Worst-case command latency is one interval.
 uint16_t g_pollCtrl_shortPollInterval   = 2;            // 500 ms (2 QS)
 uint16_t g_pollCtrl_fastPollTimeout     = 40;           // 10 sec (40 QS)
 uint32_t g_pollCtrl_checkInIntervalMin  = 0;            // no minimum enforced
@@ -423,7 +433,18 @@ const zclAttrInfo_t scene1_attrTbl[] = {
 const config_on_off_t cfg_on_off_def = {
 		.onOff          = 0x00,
         .key_lock       = 0x00,
+#if USE_IONIZER
+        /* Green must NOT track the output on this board. CONTROL_LED_ON_OFF
+         * would hold it lit for the whole run, which at ~3 min x 6/day costs
+         * ~220mAh/year - roughly 9% of the cell, and the single largest LED
+         * cost in the design. The blue line already shows a run is active,
+         * so green is reduced to a brief marker at cycle start. */
+        .led_control    = CONTROL_LED_OFF,
+        .run_interval_s = 4 * 60 * 60,	// 4 h
+        .run_duration_s = 180,			// 3 min
+#else
         .led_control    = CONTROL_LED_ON_OFF,
+#endif
 		.startUpOnOff   = ZCL_START_UP_ONOFF_SET_ONOFF_TO_OFF,
 #if USE_SWITCH
 		.switchType = ZCL_SWITCH_TYPE_MOMENTARY,         // 0x00 - toggle, 0x01 - momentary, 0x02 - multifunction, 0x03 - thermostat
@@ -456,6 +477,12 @@ const zclAttrInfo_t onOff1_attrTbl[] = {
 #endif
 	{ ZCL_ATTRID_CUSTOM_KEY_LOCK,           ZCL_BOOLEAN,    RW,     (uint8_t*)&cfg_on_off.key_lock        },
     { ZCL_ATTRID_CUSTOM_LED,                ZCL_ENUM8,      RW,     (uint8_t*)&cfg_on_off.led_control     },
+#if USE_IONIZER
+    { ZCL_ATTRID_RUN_INTERVAL,              ZCL_UINT32,     RW,     (uint8_t*)&cfg_on_off.run_interval_s  },
+    { ZCL_ATTRID_RUN_DURATION,              ZCL_UINT16,     RW,     (uint8_t*)&cfg_on_off.run_duration_s  },
+    { ZCL_ATTRID_RUN_COUNT,                 ZCL_UINT32,     R,      (uint8_t*)&ionizer_run_count          },
+    { ZCL_ATTRID_RUN_ELAPSED,               ZCL_UINT32,     R,      (uint8_t*)&ionizer_elapsed_s          },
+#endif
 
 #if USE_CFG_GPIO
     { ZCL_ATTRID_GPIO_RELAY,   				ZCL_UINT16,   RW, (u8*)&dev_gpios_new.rl },
@@ -476,6 +503,11 @@ const zclAttrInfo_t onOff1_attrTbl[] = {
     { ZCL_ATTRID_GPIO_TX,   				ZCL_UINT16,   RW, (u8*)&dev_gpios_new.tx },
 #endif
     { ZCL_ATTRID_GPIO_FLG,   				ZCL_DATA_TYPE_BITMAP16,   RW, (u8*)&dev_gpios_new.flg },
+#if USE_IONIZER
+    { ZCL_ATTRID_GPIO_BLUE1,   				ZCL_UINT16,   RW, (u8*)&dev_gpios_new.blue[0] },
+    { ZCL_ATTRID_GPIO_BLUE2,   				ZCL_UINT16,   RW, (u8*)&dev_gpios_new.blue[1] },
+    { ZCL_ATTRID_GPIO_BLUE3,   				ZCL_UINT16,   RW, (u8*)&dev_gpios_new.blue[2] },
+#endif
 #endif
 
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION,   ZCL_UINT16,     R,      (uint8_t*)&zcl_attr_global_clusterRevision      },
