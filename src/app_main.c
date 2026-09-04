@@ -384,6 +384,29 @@ void user_init(bool isRetention)
     bdb_defaultReportingCfg(APP_ENDPOINT1, HA_PROFILE_ID, ZCL_CLUSTER_GEN_MULTISTATE_INPUT_BASIC,
             ZCL_MULTISTATE_INPUT_ATTRID_PRESENT_VALUE, 0, REPORT_TIME_STAT_DEF, (uint8_t *)&reportableChange_tmp);
 #endif
+#ifdef ZCL_POWER_CFG
+    /* Battery. Without a reporting entry the value only ever reaches the
+     * coordinator via a read at interview, so it looks frozen at whatever it
+     * read on join (100% until flat, then 0% forever after a recharge). Report
+     * on change with an hourly heartbeat, matching the other clusters. The
+     * attributes must also carry the reportable flag (RR) in powerCfg_attrTbl,
+     * or both this call and a coordinator-issued Configure Reporting are
+     * rejected as unreportable. */
+    reportableChange_tmp = 2; // 1% (attr is 0..200 in 0.5% units)
+    bdb_defaultReportingCfg(APP_ENDPOINT1, HA_PROFILE_ID, ZCL_CLUSTER_GEN_POWER_CFG,
+            ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING, REPORT_TIME_MIN_DEF, REPORT_TIME_STAT_DEF, (uint8_t *)&reportableChange_tmp);
+    reportableChange_tmp = 1; // 0.1 V (attr is in decivolts)
+    bdb_defaultReportingCfg(APP_ENDPOINT1, HA_PROFILE_ID, ZCL_CLUSTER_GEN_POWER_CFG,
+            ZCL_ATTRID_BATTERY_VOLTAGE, REPORT_TIME_MIN_DEF, REPORT_TIME_STAT_DEF, (uint8_t *)&reportableChange_tmp);
+    /* Custom diagnostic mV attributes - handy to watch the raw cell during
+     * bring-up. Report on a coarse step so they don't flood the network. */
+    reportableChange_tmp = 20; // 20 mV at the ADC pin
+    bdb_defaultReportingCfg(APP_ENDPOINT1, HA_PROFILE_ID, ZCL_CLUSTER_GEN_POWER_CFG,
+            ZCL_ATTRID_BATTERY_RAW_MV, REPORT_TIME_MIN_DEF, REPORT_TIME_STAT_DEF, (uint8_t *)&reportableChange_tmp);
+    reportableChange_tmp = 40; // 40 mV at the cell (raw x VBAT_DIVIDER_MUL)
+    bdb_defaultReportingCfg(APP_ENDPOINT1, HA_PROFILE_ID, ZCL_CLUSTER_GEN_POWER_CFG,
+            ZCL_ATTRID_BATTERY_CELL_MV, REPORT_TIME_MIN_DEF, REPORT_TIME_STAT_DEF, (uint8_t *)&reportableChange_tmp);
+#endif
 #ifdef ZCL_METERING
     //reportableChange_tmp = 1;
     bdb_defaultReportingCfg(APP_ENDPOINT1, HA_PROFILE_ID, ZCL_CLUSTER_SE_METERING,

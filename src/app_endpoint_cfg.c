@@ -201,12 +201,12 @@ uint16_t g_zcl_batteryCellMv = 0;       // raw x VBAT_DIVIDER_MUL
 
 const zclAttrInfo_t powerCfg_attrTbl[] =
 {
-    { ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,    ZCL_UINT8,      R,  (uint8_t*)&g_zcl_batteryPercentage },
-    { ZCL_ATTRID_BATTERY_VOLTAGE,                 ZCL_UINT8,      R,  (uint8_t*)&g_zcl_batteryVoltage },
+    { ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,    ZCL_UINT8,      RR, (uint8_t*)&g_zcl_batteryPercentage },
+    { ZCL_ATTRID_BATTERY_VOLTAGE,                 ZCL_UINT8,      RR, (uint8_t*)&g_zcl_batteryVoltage },
 
     // Custom Attr:
-    { ZCL_ATTRID_BATTERY_RAW_MV,                  ZCL_UINT16,     R,  (uint8_t*)&g_zcl_batteryRawMv },
-    { ZCL_ATTRID_BATTERY_CELL_MV,                 ZCL_UINT16,     R,  (uint8_t*)&g_zcl_batteryCellMv },
+    { ZCL_ATTRID_BATTERY_RAW_MV,                  ZCL_UINT16,     RR, (uint8_t*)&g_zcl_batteryRawMv },
+    { ZCL_ATTRID_BATTERY_CELL_MV,                 ZCL_UINT16,     RR, (uint8_t*)&g_zcl_batteryCellMv },
 
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION,         ZCL_UINT16,     R,  (uint8_t*)&zcl_attr_global_clusterRevision  },
 };
