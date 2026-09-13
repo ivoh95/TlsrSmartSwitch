@@ -70,6 +70,7 @@ u32 heartInterval = 0;
 ev_timer_event_t *heartTimerEvt = NULL;
 #endif
 ev_timer_event_t *steerTimerEvt = NULL;
+ev_timer_event_t *rejoinBackoffTimerEvt = NULL;
 
 /**********************************************************************
  * FUNCTIONS
@@ -94,6 +95,35 @@ s32 app_bdbNetworkSteerStart(void *arg)
 
     steerTimerEvt = NULL;
     return -1;
+}
+
+/* Persistent rejoin retry for a device that has lost contact with its parent
+ * (e.g. the parent router lost power while the coordinator stayed up). Without
+ * this the stack reports the loss once and nothing ever re-attempts the join,
+ * leaving the device stranded off the network until it is power-cycled.
+ *
+ * Fires on a repeating 60s backoff and alternates secured/unsecured rejoin, so
+ * a network-key rotation that happened while we were off the air can't lock us
+ * out. A rejoin scans the whole channel mask and attaches to any router or the
+ * coordinator that answers - it does not need the original parent. Self-cancels
+ * once we are back on a network (the commissioning SUCCESS case cancels the
+ * timer) or if the device was factory-reset. */
+static s32 app_rejoinBackoff(void *arg)
+{
+    (void)arg;
+    static bool rejoinMode = REJOIN_SECURITY;
+
+    if (zb_isDeviceFactoryNew()) {
+        rejoinBackoffTimerEvt = NULL;
+        return -1;
+    }
+
+    zb_rejoinSecModeSet(rejoinMode);
+    zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
+
+    rejoinMode = !rejoinMode;
+
+    return 0;   // 0 = re-arm at the same 60s interval
 }
 
 #if FIND_AND_BIND_SUPPORT
@@ -153,6 +183,14 @@ void zb_bdbInitCb(uint8_t status, uint8_t joinedNetwork)
         }
     } else {
         heartInterval = 200;
+
+        /* Init failed but we are provisioned for a network (non-factory-new):
+         * we booted while unable to reach it - e.g. a cold boot during a parent
+         * outage. Start the persistent rejoin backoff so we recover once any
+         * parent is reachable again, instead of sitting idle off the network. */
+        if (joinedNetwork && !rejoinBackoffTimerEvt) {
+            rejoinBackoffTimerEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
+        }
     }
 
 #if DEBUG_HEART
@@ -188,6 +226,11 @@ void zb_bdbCommissioningCb(uint8_t status, void *arg)
 
         if (steerTimerEvt) {
             TL_ZB_TIMER_CANCEL(&steerTimerEvt);
+        }
+
+        /* Back on a network - stop any parent-loss rejoin retries. */
+        if (rejoinBackoffTimerEvt) {
+            TL_ZB_TIMER_CANCEL(&rejoinBackoffTimerEvt);
         }
 
 #ifdef ZCL_OTA
@@ -234,8 +277,24 @@ void zb_bdbCommissioningCb(uint8_t status, void *arg)
         break;
     case BDB_COMMISSION_STA_NOT_PERMITTED:
         break;
-    case BDB_COMMISSION_STA_REJOIN_FAILURE:
+    case BDB_COMMISSION_STA_PARENT_LOST:
+        /* Stack has determined the parent is gone (e.g. the parent router lost
+         * power). Try an immediate secured rejoin - it scans the channel mask
+         * and attaches to any router/coordinator that answers, keeping the
+         * network key. If that first attempt fails we fall through to the
+         * REJOIN_FAILURE backoff below on the next callback. Previously this
+         * case was unhandled (default: no-op), so a device that lost its parent
+         * never rejoined until it was power-cycled. */
+        zb_rejoinSecModeSet(REJOIN_SECURITY);
         zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
+        break;
+    case BDB_COMMISSION_STA_REJOIN_FAILURE:
+        /* Keep retrying on a 60s backoff instead of giving up after one shot.
+         * app_rejoinBackoff alternates secured/unsecured and self-cancels once
+         * we rejoin (or if the device is factory-reset). */
+        if (!rejoinBackoffTimerEvt) {
+            rejoinBackoffTimerEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
+        }
         break;
     case BDB_COMMISSION_STA_FORMATION_DONE:
 #ifndef ZBHCI_EN
